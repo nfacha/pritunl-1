@@ -17,7 +17,8 @@ _changes_audit_text = {
     'username': 'Administrator username changed',
     'password': 'Administrator password changed',
     'smtp': 'SMTP settings changed',
-    'pin_mode': 'User pin mode settings changed',
+    'pin_mode': 'User pin mode setting changed',
+    'restrict_import': 'Restrict import setting changed',
     'sso': 'Single sign-on settings changed',
 }
 
@@ -65,6 +66,7 @@ def _dict():
             'sso_radius_host': 'demo',
             'sso_cache': settings.app.sso_cache,
             'sso_client_cache': settings.app.sso_client_cache,
+            'restrict_import': settings.user.restrict_import,
             'client_reconnect': settings.user.reconnect,
             'public_address': settings.local.host.public_addr,
             'public_address6': settings.local.host.public_addr6,
@@ -86,16 +88,26 @@ def _dict():
             'us_west_1_secret_key': 'demo',
             'us_west_2_access_key': 'demo',
             'us_west_2_secret_key': 'demo',
+            'us_gov_east_1_access_key': 'demo',
+            'us_gov_east_1_secret_key': 'demo',
             'us_gov_west_1_access_key': 'demo',
             'us_gov_west_1_secret_key': 'demo',
+            'eu_north_1_access_key': 'demo',
+            'eu_north_1_secret_key': 'demo',
             'eu_west_1_access_key': 'demo',
             'eu_west_1_secret_key': 'demo',
             'eu_west_2_access_key': 'demo',
             'eu_west_2_secret_key': 'demo',
+            'eu_west_3_access_key': 'demo',
+            'eu_west_3_secret_key': 'demo',
             'eu_central_1_access_key': 'demo',
             'eu_central_1_secret_key': 'demo',
             'ca_central_1_access_key': 'demo',
             'ca_central_1_secret_key': 'demo',
+            'cn_north_1_access_key': 'demo',
+            'cn_north_1_secret_key': 'demo',
+            'cn_northwest_1_access_key': 'demo',
+            'cn_northwest_1_secret_key': 'demo',
             'ap_northeast_1_access_key': 'demo',
             'ap_northeast_1_secret_key': 'demo',
             'ap_northeast_2_access_key': 'demo',
@@ -104,6 +116,8 @@ def _dict():
             'ap_southeast_1_secret_key': 'demo',
             'ap_southeast_2_access_key': 'demo',
             'ap_southeast_2_secret_key': 'demo',
+            'ap_east_1_access_key': 'demo',
+            'ap_east_1_secret_key': 'demo',
             'ap_south_1_access_key': 'demo',
             'ap_south_1_secret_key': 'demo',
             'sa_east_1_access_key': 'demo',
@@ -152,6 +166,7 @@ def _dict():
             'sso_radius_host': settings.app.sso_radius_host,
             'sso_cache': settings.app.sso_cache,
             'sso_client_cache': settings.app.sso_client_cache,
+            'restrict_import': settings.user.restrict_import,
             'client_reconnect': settings.user.reconnect,
             'public_address': settings.local.host.public_addr,
             'public_address6': settings.local.host.public_addr6,
@@ -173,16 +188,32 @@ def _dict():
             'us_west_1_secret_key': settings.app.us_west_1_secret_key,
             'us_west_2_access_key': settings.app.us_west_2_access_key,
             'us_west_2_secret_key': settings.app.us_west_2_secret_key,
-            'us_gov_west_1_access_key': settings.app.us_gov_west_1_access_key,
-            'us_gov_west_1_secret_key': settings.app.us_gov_west_1_secret_key,
+            'us_gov_east_1_access_key':
+                settings.app.us_gov_east_1_access_key,
+            'us_gov_east_1_secret_key':
+                settings.app.us_gov_east_1_secret_key,
+            'us_gov_west_1_access_key':
+                settings.app.us_gov_west_1_access_key,
+            'us_gov_west_1_secret_key':
+                settings.app.us_gov_west_1_secret_key,
+            'eu_north_1_access_key': settings.app.eu_north_1_access_key,
+            'eu_north_1_secret_key': settings.app.eu_north_1_secret_key,
             'eu_west_1_access_key': settings.app.eu_west_1_access_key,
             'eu_west_1_secret_key': settings.app.eu_west_1_secret_key,
             'eu_west_2_access_key': settings.app.eu_west_2_access_key,
             'eu_west_2_secret_key': settings.app.eu_west_2_secret_key,
+            'eu_west_3_access_key': settings.app.eu_west_3_access_key,
+            'eu_west_3_secret_key': settings.app.eu_west_3_secret_key,
             'eu_central_1_access_key': settings.app.eu_central_1_access_key,
             'eu_central_1_secret_key': settings.app.eu_central_1_secret_key,
             'ca_central_1_access_key': settings.app.ca_central_1_access_key,
             'ca_central_1_secret_key': settings.app.ca_central_1_secret_key,
+            'cn_north_1_access_key': settings.app.cn_north_1_access_key,
+            'cn_north_1_secret_key': settings.app.cn_north_1_secret_key,
+            'cn_northwest_1_access_key':
+                settings.app.cn_northwest_1_access_key,
+            'cn_northwest_1_secret_key':
+                settings.app.cn_northwest_1_secret_key,
             'ap_northeast_1_access_key':
                 settings.app.ap_northeast_1_access_key,
             'ap_northeast_1_secret_key':
@@ -199,6 +230,10 @@ def _dict():
                 settings.app.ap_southeast_2_access_key,
             'ap_southeast_2_secret_key':
                 settings.app.ap_southeast_2_secret_key,
+            'ap_east_1_access_key':
+                settings.app.ap_east_1_access_key,
+            'ap_east_1_secret_key':
+                settings.app.ap_east_1_secret_key,
             'ap_south_1_access_key':
                 settings.app.ap_south_1_access_key,
             'ap_south_1_secret_key':
@@ -291,12 +326,6 @@ def settings_put():
             return utils.jsonify({
                 'error': PORT_INVALID,
                 'error_msg': PORT_INVALID_MSG,
-            }, 400)
-
-        if settings.app.redirect_server and server_port == 80:
-            return utils.jsonify({
-                'error': PORT_RESERVED,
-                'error_msg': PORT_RESERVED_MSG,
             }, 400)
 
         if server_port != settings.app.server_port:
@@ -624,6 +653,14 @@ def settings_put():
             changes.add('sso')
         settings.app.sso_client_cache = sso_client_cache
 
+    if 'restrict_import' in flask.request.json:
+        settings_commit = True
+        restrict_import = True if \
+            flask.request.json['restrict_import'] else False
+        if restrict_import != settings.user.restrict_import:
+            changes.add('restrict_import')
+        settings.user.restrict_import = restrict_import
+
     if 'client_reconnect' in flask.request.json:
         settings_commit = True
         client_reconnect = True if \
@@ -748,16 +785,26 @@ def settings_put():
                 'us_west_1_secret_key',
                 'us_west_2_access_key',
                 'us_west_2_secret_key',
+                'us_gov_east_1_access_key',
+                'us_gov_east_1_secret_key',
                 'us_gov_west_1_access_key',
                 'us_gov_west_1_secret_key',
+                'eu_north_1_access_key',
+                'eu_north_1_secret_key',
                 'eu_west_1_access_key',
                 'eu_west_1_secret_key',
                 'eu_west_2_access_key',
                 'eu_west_2_secret_key',
+                'eu_west_3_access_key',
+                'eu_west_3_secret_key',
                 'eu_central_1_access_key',
                 'eu_central_1_secret_key',
                 'ca_central_1_access_key',
                 'ca_central_1_secret_key',
+                'cn_north_1_access_key',
+                'cn_north_1_secret_key',
+                'cn_northwest_1_access_key',
+                'cn_northwest_1_secret_key',
                 'ap_northeast_1_access_key',
                 'ap_northeast_1_secret_key',
                 'ap_northeast_2_access_key',
@@ -766,6 +813,8 @@ def settings_put():
                 'ap_southeast_1_secret_key',
                 'ap_southeast_2_access_key',
                 'ap_southeast_2_secret_key',
+                'ap_east_1_access_key',
+                'ap_east_1_secret_key',
                 'ap_south_1_access_key',
                 'ap_south_1_secret_key',
                 'sa_east_1_access_key',

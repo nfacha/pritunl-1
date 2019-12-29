@@ -1,6 +1,35 @@
 Pritunl Changelog
 =================
 
+Version 1.29.2276.91 2019-12-06
+-------------------------------
+
+Fix issue with dynamic addresses
+
+Version 1.29.2232.32 2019-10-23
+-------------------------------
+
+Add YubiKey support without single sign-on
+Remove audit events from logs
+
+Version 1.29.2209.0 2019-09-30
+------------------------------
+
+Reliablity improvements
+
+Version 1.29.2208.39 2019-09-29
+-------------------------------
+
+Server reliablity improvements
+
+Version 1.29.2145.25 2019-07-28
+-------------------------------
+
+Improve profile management
+Support Google Authenticator on Okta
+Add support for new AWS regions
+Fix connection issues with client
+
 Version 1.29.2051.18 2019-04-25
 -------------------------------
 

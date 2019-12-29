@@ -20,6 +20,7 @@ import pymongo
 import hmac
 import hashlib
 import base64
+import datetime
 import urlparse
 import requests
 
@@ -60,6 +61,10 @@ def _find_doc(query, one_time=None, one_time_new=False):
     doc = collection.find_one(query)
 
     if one_time and doc and doc.get('one_time'):
+        if utils.now() - doc['timestamp'] > datetime.timedelta(
+                seconds=settings.app.key_link_timeout_short):
+            return None
+
         short_id = utils.rand_str(settings.app.long_url_length)
         collection = mongo.get_collection('users_key_link')
 
@@ -199,6 +204,7 @@ def user_linked_key_conf_get(org_id, user_id, server_id):
 @app.app.route('/key/<key_id>.tar', methods=['GET'])
 @auth.open_auth
 def user_linked_key_tar_archive_get(key_id):
+    key_id = key_id[:128]
     remote_addr = utils.get_remote_addr()
     doc = _find_doc({
         'key_id': key_id,
@@ -209,6 +215,9 @@ def user_linked_key_tar_archive_get(key_id):
             remote_address=remote_addr,
             event_long='Key ID not found',
         )
+        return flask.abort(404)
+
+    if settings.user.restrict_import:
         return flask.abort(404)
 
     usr, resp = _get_key_tar_archive(doc['org_id'], doc['user_id'])
@@ -238,6 +247,7 @@ def user_linked_key_tar_archive_get(key_id):
 @app.app.route('/key/<key_id>.zip', methods=['GET'])
 @auth.open_auth
 def user_linked_key_zip_archive_get(key_id):
+    key_id = key_id[:128]
     remote_addr = utils.get_remote_addr()
     doc = _find_doc({
         'key_id': key_id,
@@ -248,6 +258,9 @@ def user_linked_key_zip_archive_get(key_id):
             remote_address=remote_addr,
             event_long='Key ID not found',
         )
+        return flask.abort(404)
+
+    if settings.user.restrict_import:
         return flask.abort(404)
 
     usr, resp = _get_key_zip_archive(doc['org_id'], doc['user_id'])
@@ -277,6 +290,7 @@ def user_linked_key_zip_archive_get(key_id):
 @app.app.route('/key_onc/<key_id>.onc', methods=['GET'])
 @auth.open_auth
 def user_linked_key_onc_archive_get(key_id):
+    key_id = key_id[:128]
     remote_addr = utils.get_remote_addr()
     doc = _find_doc({
         'key_id': key_id,
@@ -287,6 +301,9 @@ def user_linked_key_onc_archive_get(key_id):
             remote_address=remote_addr,
             event_long='Key ID not found',
         )
+        return flask.abort(404)
+
+    if settings.user.restrict_import:
         return flask.abort(404)
 
     usr, resp = _get_onc_archive(doc['org_id'], doc['user_id'])
@@ -319,6 +336,7 @@ def user_key_pin_put(key_id):
     if settings.app.demo_mode:
         return utils.demo_blocked()
 
+    key_id = key_id[:128]
     remote_addr = utils.get_remote_addr()
 
     doc = _find_doc({
@@ -401,6 +419,7 @@ def user_key_pin_put(key_id):
 @app.app.route('/k/<short_code>', methods=['GET'])
 @auth.open_auth
 def user_linked_key_page_get(short_code):
+    short_code = short_code[:128]
     remote_addr = utils.get_remote_addr()
 
     doc = _find_doc({
@@ -447,6 +466,9 @@ def user_linked_key_page_get(short_code):
         header_class = 'pin-disabled'
     else:
         header_class = ''
+
+    if settings.user.restrict_import:
+        header_class += ' restrict-import'
 
     key_page = static.StaticFile(settings.conf.www_path, view_name,
         cache=False, gzip=False).data
@@ -500,7 +522,7 @@ def user_linked_key_page_get(short_code):
     key_page = key_page.replace('<%= conf_links %>', conf_links)
 
     if not has_servers:
-        header_class += 'no-servers'
+        header_class += ' no-servers'
     key_page = key_page.replace('<%= header_class %>', header_class)
 
     return key_page
@@ -509,6 +531,7 @@ def user_linked_key_page_get(short_code):
 @auth.open_auth
 def user_linked_key_page_delete(short_code):
     utils.rand_sleep()
+    short_code = short_code[:128]
     remote_addr = utils.get_remote_addr()
 
     journal.entry(
@@ -527,6 +550,7 @@ def user_linked_key_page_delete(short_code):
 @app.app.route('/ku/<short_code>', methods=['GET'])
 @auth.open_auth
 def user_uri_key_page_get(short_code):
+    short_code = short_code[:128]
     remote_addr = utils.get_remote_addr()
 
     doc = _find_doc({
@@ -562,6 +586,8 @@ def user_uri_key_page_get(short_code):
 @app.app.route('/key/<key_id>/<server_id>.key', methods=['GET'])
 @auth.open_auth
 def user_linked_key_conf_get(key_id, server_id):
+    key_id = key_id[:128]
+    server_id = server_id
     remote_addr = utils.get_remote_addr()
 
     doc = _find_doc({
@@ -573,6 +599,9 @@ def user_linked_key_conf_get(key_id, server_id):
             remote_address=remote_addr,
             event_long='Key ID not found',
         )
+        return flask.abort(404)
+
+    if settings.user.restrict_import:
         return flask.abort(404)
 
     org = organization.get_by_id(doc['org_id'])
@@ -627,6 +656,10 @@ def user_linked_key_conf_get(key_id, server_id):
     methods=['GET'])
 @auth.open_auth
 def key_sync_get(org_id, user_id, server_id, key_hash):
+    org_id = org_id
+    user_id = user_id
+    server_id = server_id
+    key_hash = key_hash[:256]
     remote_addr = utils.get_remote_addr()
 
     if not settings.user.conf_sync:
@@ -649,7 +682,10 @@ def key_sync_get(org_id, user_id, server_id, key_hash):
             event_long='Missing auth header',
         )
         return flask.abort(406)
+    auth_token = auth_token[:256]
+    auth_timestamp = auth_timestamp[:256]
     auth_nonce = auth_nonce[:32]
+    auth_signature = auth_signature[:512]
 
     try:
         if abs(int(auth_timestamp) - int(utils.time_now())) > \

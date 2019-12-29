@@ -122,6 +122,18 @@ class User(mongo.MongoObject):
         return mongo.get_collection('otp_cache')
 
     @property
+    def sso_passcode_cache_collection(cls):
+        return mongo.get_collection('sso_passcode_cache')
+
+    @property
+    def sso_push_cache_collection(cls):
+        return mongo.get_collection('sso_push_cache')
+
+    @property
+    def sso_client_cache_collection(cls):
+        return mongo.get_collection('sso_client_cache')
+
+    @property
     def has_duo_passcode(self):
         return settings.app.sso and self.auth_type and \
            DUO_AUTH in self.auth_type and \
@@ -144,9 +156,10 @@ class User(mongo.MongoObject):
 
     @property
     def has_yubikey(self):
-        return settings.app.sso and self.auth_type and \
+        return self.auth_type == YUBICO_AUTH or (
+            settings.app.sso and self.auth_type and \
             YUBICO_AUTH in self.auth_type and \
-            YUBICO_AUTH in settings.app.sso
+            YUBICO_AUTH in settings.app.sso)
 
     @property
     def journal_data(self):
@@ -176,6 +189,7 @@ class User(mongo.MongoObject):
             'pin': bool(self.pin),
             'type': self.type,
             'auth_type': self.auth_type,
+            'yubico_id': self.yubico_id,
             'otp_secret': self.otp_secret,
             'disabled': self.disabled,
             'bypass_secondary': self.bypass_secondary,
@@ -324,6 +338,18 @@ class User(mongo.MongoObject):
         })
         self.unassign_ip_addr()
         mongo.MongoObject.remove(self)
+
+    def clear_auth_cache(self):
+        self.sso_passcode_cache_collection.delete_many({
+            'user_id': self.id,
+        })
+        self.sso_push_cache_collection.delete_many({
+            'user_id': self.id,
+        })
+        self.sso_client_cache_collection.delete_many({
+            'user_id': self.id,
+        })
+        messenger.publish('instance', ['user_disconnect', self.id])
 
     def disconnect(self):
         messenger.publish('instance', ['user_disconnect', self.id])
@@ -682,7 +708,7 @@ class User(mongo.MongoObject):
             return SAML_OKTA_AUTH
 
     def _get_key_info_str(self, svr, conf_hash, include_sync_keys):
-        public_key, _ = svr.get_auth_key()
+        svr.generate_auth_key_commit()
 
         data = {
             'version': CLIENT_CONF_VER,
@@ -703,7 +729,8 @@ class User(mongo.MongoObject):
 
         if settings.user.password_encryption:
             data['token'] = self._get_token_mode()
-            data['server_public_key'] = public_key.splitlines()
+            data['server_public_key'] = svr.auth_public_key.splitlines()
+            data['server_box_public_key'] = svr.auth_box_public_key
         else:
             data['token'] = False
 
@@ -1207,20 +1234,6 @@ class User(mongo.MongoObject):
             'audit_event',
             host_id=settings.local.host_id,
             host_name=settings.local.host.name,
-            user_id=self.id,
-            user_name=self.name,
-            org_id=self.org_id,
-            org_name=org_name,
-            timestamp=timestamp,
-            type=event_type,
-            remote_addr=remote_addr,
-            message=event_msg,
-            **kwargs
-        )
-
-        logger.info(
-            'Audit event',
-            'audit',
             user_id=self.id,
             user_name=self.name,
             org_id=self.org_id,

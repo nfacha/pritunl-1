@@ -3,10 +3,9 @@ define([
   'underscore',
   'backbone',
   'models/serverRoute',
-  'models/vpcs',
   'views/modal',
   'text!templates/modalAddRoute.html'
-], function($, _, Backbone, ServerRouteModel, VpcsModel, ModalView,
+], function($, _, Backbone, ServerRouteModel, ModalView,
     modalAddRouteTemplate) {
   'use strict';
   var lastServer;
@@ -25,7 +24,6 @@ define([
       }, ModalAddRouteView.__super__.events);
     },
     initialize: function() {
-      this.vpcs = new VpcsModel();
       ModalAddRouteView.__super__.initialize.call(this);
     },
     body: function() {
@@ -123,6 +121,7 @@ define([
       var server = this.$('.server select').val();
       var nat = this.getNatRouteSelect();
       var natInterface = this.$('.nat-interface input').val();
+      var natNetmap = this.$('.nat-netmap input').val();
       var netGateway = this.getNetGatewaySelect();
       var routeAd = this.getRotueAdSelect();
 
@@ -135,6 +134,7 @@ define([
         metric: metric,
         nat: nat,
         nat_interface: natInterface,
+        nat_netmap: natNetmap,
         net_gateway: netGateway,
         advertise: routeAd,
         server: server

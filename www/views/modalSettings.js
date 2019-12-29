@@ -27,6 +27,7 @@ define([
         'change .route53-region select': 'updateZones',
         'click .sso-cache': 'onSsoCacheSelect',
         'click .sso-client-cache': 'onSsoClientCacheSelect',
+        'click .restrict-import': 'onRestrictImportSelect',
         'click .client-reconnect': 'onClientReconnect',
         'propertychange .pass input': 'onPassEvent',
         'change .cloud-provider select': 'onCloudProviderChange',
@@ -832,6 +833,22 @@ define([
     onSsoClientCacheSelect: function() {
       this.setSsoClientCacheSelect(!this.getSsoClientCacheSelect());
     },
+    getRestrictImportSelect: function() {
+      return this.$('.restrict-import .selector').hasClass('selected');
+    },
+    setRestrictImportSelect: function(state) {
+      if (state) {
+        this.$('.restrict-import .selector').addClass('selected');
+        this.$('.restrict-import .selector-inner').show();
+      }
+      else {
+        this.$('.restrict-import .selector').removeClass('selected');
+        this.$('.restrict-import .selector-inner').hide();
+      }
+    },
+    onRestrictImportSelect: function() {
+      this.setRestrictImportSelect(!this.getRestrictImportSelect());
+    },
     getClientReconnect: function() {
       return this.$('.client-reconnect .selector').hasClass('selected');
     },
@@ -933,6 +950,7 @@ define([
       var clientReconnect = this.getClientReconnect();
       var ssoCache = this.getSsoCacheSelect();
       var ssoClientCache = this.getSsoClientCacheSelect();
+      var restrictImport = this.getRestrictImportSelect();
       var oracleUserOcid = this.$(
         '.oracle-user-ocid input').val();
       var oraclePublicKey = this.$(
@@ -953,10 +971,18 @@ define([
         '.us-west-2-access-key input').val();
       var usWest2SecretKey = this.$(
         '.us-west-2-secret-key input').val();
+      var usGovEast1AccessKey = this.$(
+        '.us-gov-east-1-access-key input').val();
+      var usGovEast1SecretKey = this.$(
+        '.us-gov-east-1-secret-key input').val();
       var usGovWest1AccessKey = this.$(
         '.us-gov-west-1-access-key input').val();
       var usGovWest1SecretKey = this.$(
         '.us-gov-west-1-secret-key input').val();
+      var euNorth1AccessKey = this.$(
+        '.eu-north-1-access-key input').val();
+      var euNorth1SecretKey = this.$(
+        '.eu-north-1-secret-key input').val();
       var euWest1AccessKey = this.$(
         '.eu-west-1-access-key input').val();
       var euWest1SecretKey = this.$(
@@ -965,6 +991,10 @@ define([
         '.eu-west-2-access-key input').val();
       var euWest2SecretKey = this.$(
         '.eu-west-2-secret-key input').val();
+      var euWest3AccessKey = this.$(
+        '.eu-west-3-access-key input').val();
+      var euWest3SecretKey = this.$(
+        '.eu-west-3-secret-key input').val();
       var euCentral1AccessKey = this.$(
         '.eu-central-1-access-key input').val();
       var euCentral1SecretKey = this.$(
@@ -973,6 +1003,14 @@ define([
         '.ca-central-1-access-key input').val();
       var caCentral1SecretKey = this.$(
         '.ca-central-1-secret-key input').val();
+      var cnNorth1AccessKey = this.$(
+        '.cn-north-1-access-key input').val();
+      var cnNorth1SecretKey = this.$(
+        '.cn-north-1-secret-key input').val();
+      var cnNorthwest1AccessKey = this.$(
+        '.cn-northwest-1-access-key input').val();
+      var cnNorthwest1SecretKey = this.$(
+        '.cn-northwest-1-secret-key input').val();
       var apNortheast1AccessKey = this.$(
         '.ap-northeast-1-access-key input').val();
       var apNortheast1SecretKey = this.$(
@@ -989,6 +1027,10 @@ define([
         '.ap-southeast-2-access-key input').val();
       var apSoutheast2SecretKey = this.$(
         '.ap-southeast-2-secret-key input').val();
+      var apEast1AccessKey = this.$(
+        '.ap-east-1-access-key input').val();
+      var apEast1SecretKey = this.$(
+        '.ap-east-1-secret-key input').val();
       var apSouth1AccessKey = this.$(
         '.ap-south-1-access-key input').val();
       var apSouth1SecretKey = this.$(
@@ -1183,6 +1225,7 @@ define([
         sso_radius_secret: ssoRadiusSecret,
         sso_cache: ssoCache,
         sso_client_cache: ssoClientCache,
+        restrict_import: restrictImport,
         client_reconnect: clientReconnect,
         public_address: publicAddress,
         public_address6: publicAddress6,
@@ -1206,16 +1249,26 @@ define([
         us_west_1_secret_key: usWest1SecretKey,
         us_west_2_access_key: usWest2AccessKey,
         us_west_2_secret_key: usWest2SecretKey,
+        us_gov_east_1_access_key: usGovEast1AccessKey,
+        us_gov_east_1_secret_key: usGovEast1SecretKey,
         us_gov_west_1_access_key: usGovWest1AccessKey,
         us_gov_west_1_secret_key: usGovWest1SecretKey,
+        eu_north_1_access_key: euNorth1AccessKey,
+        eu_north_1_secret_key: euNorth1SecretKey,
         eu_west_1_access_key: euWest1AccessKey,
         eu_west_1_secret_key: euWest1SecretKey,
         eu_west_2_access_key: euWest2AccessKey,
         eu_west_2_secret_key: euWest2SecretKey,
+        eu_west_3_access_key: euWest3AccessKey,
+        eu_west_3_secret_key: euWest3SecretKey,
         eu_central_1_access_key: euCentral1AccessKey,
         eu_central_1_secret_key: euCentral1SecretKey,
         ca_central_1_access_key: caCentral1AccessKey,
         ca_central_1_secret_key: caCentral1SecretKey,
+        cn_north_1_access_key: cnNorth1AccessKey,
+        cn_north_1_secret_key: cnNorth1SecretKey,
+        cn_northwest_1_access_key: cnNorthwest1AccessKey,
+        cn_northwest_1_secret_key: cnNorthwest1SecretKey,
         ap_northeast_1_access_key: apNortheast1AccessKey,
         ap_northeast_1_secret_key: apNortheast1SecretKey,
         ap_northeast_2_access_key: apNortheast2AccessKey,
@@ -1224,6 +1277,8 @@ define([
         ap_southeast_1_secret_key: apSoutheast1SecretKey,
         ap_southeast_2_access_key: apSoutheast2AccessKey,
         ap_southeast_2_secret_key: apSoutheast2SecretKey,
+        ap_east_1_access_key: apEast1AccessKey,
+        ap_east_1_secret_key: apEast1SecretKey,
         ap_south_1_access_key: apSouth1AccessKey,
         ap_south_1_secret_key: apSouth1SecretKey,
         sa_east_1_access_key: saEast1AccessKey,

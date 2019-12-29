@@ -2,10 +2,9 @@ define([
   'jquery',
   'underscore',
   'backbone',
-  'models/vpcs',
   'views/modal',
   'text!templates/modalModifyRoute.html'
-], function($, _, Backbone, VpcsModel, ModalView, modaleModifyRouteTemplate) {
+], function($, _, Backbone, ModalView, modaleModifyRouteTemplate) {
   'use strict';
   var ModalModifyRouteView = ModalView.extend({
     className: 'modify-route-modal',
@@ -22,7 +21,6 @@ define([
       }, ModalModifyRouteView.__super__.events);
     },
     initialize: function() {
-      this.vpcs = new VpcsModel();
       ModalModifyRouteView.__super__.initialize.call(this);
     },
     body: function() {
@@ -115,6 +113,7 @@ define([
       var metric = this.$('.route-metric input').val();
       var nat = this.getNatRouteSelect();
       var natInterface = this.$('.nat-interface input').val();
+      var natNetmap = this.$('.nat-netmap input').val();
       var netGateway = this.getNetGatewaySelect();
       var routeAd = this.getRotueAdSelect();
 
@@ -126,6 +125,7 @@ define([
         metric: metric,
         nat: nat,
         nat_interface: natInterface,
+        nat_netmap: natNetmap,
         net_gateway: netGateway,
         advertise: routeAd
       }, {

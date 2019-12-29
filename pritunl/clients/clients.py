@@ -23,10 +23,12 @@ import collections
 import bson
 import hashlib
 import base64
+import binascii
 import threading
 import uuid
 import pymongo
 import json
+import nacl.public
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -67,7 +69,9 @@ class Clients(object):
                 continue
             self.ip_pool.append(str(ip_addr))
         self.ip_pool.pop()
+        self.ip_pool.pop()
 
+        self.server.generate_auth_key_commit()
         self.server_private_key = self.server.get_auth_private_key()
 
     @cached_static_property
@@ -158,7 +162,8 @@ class Clients(object):
             if not self.server.dns_mapping or \
                     settings.vpn.dns_mapping_push_all:
                 for dns_server in self.server.dns_servers:
-                    client_conf += 'push "dhcp-option DNS %s"\n' % dns_server
+                    client_conf += 'push "dhcp-option DNS %s"\n' % \
+                        dns_server
 
             if self.server.search_domain:
                 for domain in self.server.search_domain.split(','):
@@ -755,6 +760,9 @@ class Clients(object):
         self.instance_com.send_client_auth(client_id, key_id, client_conf)
 
     def decrypt_rsa(self, cipher_data):
+        if len(cipher_data) > 1024:
+            raise ValueError('Sender cipher data too long')
+
         cipher_data = base64.b64decode(cipher_data)
 
         plaintext = self.server_private_key.decrypt(
@@ -776,6 +784,38 @@ class Clients(object):
 
         return auth_password, auth_token, auth_nonce, auth_timestamp
 
+    def decrypt_box(self, sender_pub_key64, cipher_data64):
+        if len(sender_pub_key64) > 128:
+            raise ValueError('Sender pub key too long')
+
+        if len(cipher_data64) > 256:
+            raise ValueError('Sender cipher data too long')
+
+        sender_pub_key64 += '=' * (-len(sender_pub_key64) % 4)
+        cipher_data64 += '=' * (-len(cipher_data64) % 4)
+
+        sender_pub_key = nacl.public.PublicKey(
+            base64.b64decode(sender_pub_key64))
+
+        pub_key_hash = hashlib.sha256(bytes(sender_pub_key)).digest()
+        nonce = pub_key_hash[:24]
+        auth_nonce = binascii.hexlify(pub_key_hash)
+
+        priv_key = nacl.public.PrivateKey(
+            base64.b64decode(self.server.auth_box_private_key))
+
+        cipher_data = base64.b64decode(cipher_data64)
+
+        nacl_box = nacl.public.Box(priv_key, sender_pub_key)
+
+        plaintext = nacl_box.decrypt(cipher_data, nonce).decode('utf-8')
+
+        auth_token = plaintext[:16]
+        auth_password = plaintext[26:]
+        auth_timestamp = int(plaintext[16:26])
+
+        return auth_password, auth_token, auth_nonce, auth_timestamp
+
     def _connect(self, client_data, reauth):
         client_id = client_data['client_id']
         key_id = client_data['key_id']
@@ -785,6 +825,7 @@ class Clients(object):
         platform = client_data.get('platform')
         device_id = client_data.get('device_id')
         device_name = client_data.get('device_name')
+        username = client_data.get('username')
         password = client_data.get('password')
         auth_password = None
         auth_token = None
@@ -792,10 +833,16 @@ class Clients(object):
         auth_timestamp = None
         mac_addr = client_data.get('mac_addr')
 
-        if password and '<%=RSA_ENCRYPTED=%>' in password and \
+        if password and password.startswith('$x$') and \
+                len(username) > 24 and len(password) > 24 and \
                 self.server_private_key:
             auth_password, auth_token, auth_nonce, auth_timestamp = \
-                self.decrypt_rsa(password.split('<%=RSA_ENCRYPTED=%>')[-1])
+                self.decrypt_box(username, password[3:])
+        elif password and '<%=RSA_ENCRYPTED=%>' in password and \
+                self.server_private_key:
+            auth_password, auth_token, auth_nonce, auth_timestamp = \
+                self.decrypt_rsa(
+                    password.split('<%=RSA_ENCRYPTED=%>', 1)[-1])
         elif password and '<%=PUSH_TOKEN=%>' in password:
             _, password = password.split('<%=PUSH_TOKEN=%>')
             password = password or None
@@ -1126,6 +1173,24 @@ class Clients(object):
             self.instance_com.client_kill(client_id)
             return
 
+        journal.entry(
+            journal.USER_CONNECT_NETWORK,
+            self.server.journal_data,
+            user_id=client['user_id'],
+            user_name=client['user_name'],
+            user_type=client['user_type'],
+            platform=client['platform'],
+            type=client['user_type'],
+            device_name=client['device_name'],
+            mac_addr=client['mac_addr'],
+            real_address=client['real_address'],
+            virt_address=client['virt_address'],
+            virt_address6=client['virt_address6'],
+            host_address=self.route_addr,
+            host_address6=self.route_addr6,
+            event_long='User connected to network',
+        )
+
         self.set_iptables_rules(
             client['iptables_rules'],
             client['ip6tables_rules'],
@@ -1208,41 +1273,68 @@ class Clients(object):
         org = self.get_org(org_id)
         if org:
             user = org.get_user(user_id)
-            if user:
-                user.audit_event(
-                    'user_connection',
-                    'User disconnected from "%s"' % self.server.name,
-                    remote_addr=remote_ip,
-                    server_name=self.server.name,
-                )
-                journal.entry(
-                    journal.USER_DISCONNECT,
-                    user.journal_data,
-                    self.server.journal_data,
-                    remote_address=remote_ip,
-                    event_long='User disconnected',
-                )
-                monitoring.insert_point('user_disconnections', {
-                    'host': settings.local.host.name,
-                    'server': self.server.name,
-                }, {
-                    'user': user.name,
-                    'remote_ip': remote_ip,
-                })
-                plugins.event(
-                    'user_disconnected',
-                    host_id=settings.local.host_id,
-                    server_id=self.server.id,
-                    org_id=org.id,
-                    user_id=user.id,
-                    host_name=settings.local.host.name,
-                    server_name=self.server.name,
-                    org_name=org.name,
-                    user_name=user.name,
-                    remote_ip=remote_ip,
-                    virtual_ip=virt_address,
-                    virtual_ip6=virt_address6,
-                )
+        else:
+            user = None
+
+        if user:
+            user.audit_event(
+                'user_connection',
+                'User disconnected from "%s"' % self.server.name,
+                remote_addr=remote_ip,
+                server_name=self.server.name,
+            )
+            journal.entry(
+                journal.USER_DISCONNECT,
+                user.journal_data,
+                self.server.journal_data,
+                remote_address=remote_ip,
+                event_long='User disconnected',
+            )
+            monitoring.insert_point('user_disconnections', {
+                'host': settings.local.host.name,
+                'server': self.server.name,
+            }, {
+                'user': user.name,
+                'remote_ip': remote_ip,
+            })
+            plugins.event(
+                'user_disconnected',
+                host_id=settings.local.host_id,
+                server_id=self.server.id,
+                org_id=org_id,
+                user_id=user_id,
+                host_name=settings.local.host.name,
+                server_name=self.server.name,
+                org_name=org.name,
+                user_name=user.name,
+                remote_ip=remote_ip,
+                virtual_ip=virt_address,
+                virtual_ip6=virt_address6,
+            )
+        else:
+            journal.entry(
+                journal.USER_DISCONNECT,
+                {
+                    'user_id': user_id,
+                },
+                self.server.journal_data,
+                remote_address=remote_ip,
+                event_long='User disconnected',
+            )
+            plugins.event(
+                'user_disconnected',
+                host_id=settings.local.host_id,
+                server_id=self.server.id,
+                org_id=org_id,
+                user_id=user_id,
+                host_name=settings.local.host.name,
+                server_name=self.server.name,
+                org_name='',
+                user_name='',
+                remote_ip=remote_ip,
+                virtual_ip=virt_address,
+                virtual_ip6=virt_address6,
+            )
 
         # if self.server.route_clients and not client.get('ignore_routes'):
         #     messenger.publish('client', {

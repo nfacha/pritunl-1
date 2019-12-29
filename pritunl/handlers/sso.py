@@ -126,6 +126,9 @@ def _validate_user(username, email, sso_mode, org_id, groups, remote_addr,
             usr.auth_type = sso_mode
             usr.commit('auth_type')
 
+        usr.clear_auth_cache()
+        usr.disconnect()
+
         if changed:
             event.Event(type=USERS_UPDATED, resource_id=org.id)
 
@@ -576,6 +579,14 @@ def sso_callback_get():
         org_names = sorted(org_names.split(','))
 
         if user_team != settings.app.sso_match[0]:
+            journal.entry(
+                journal.SSO_AUTH_FAILURE,
+                user_name=username,
+                remote_address=remote_addr,
+                reason=journal.SSO_AUTH_REASON_SLACK_FAILED,
+                reason_long='Slack team not valid',
+            )
+
             return flask.abort(401)
 
         not_found = False
@@ -1039,9 +1050,9 @@ def sso_yubico_post():
     token = utils.filter_str(flask.request.json.get('token')) or None
     key = utils.filter_str(flask.request.json.get('key')) or None
 
-    if sso_mode not in (GOOGLE_YUBICO_AUTH, SLACK_YUBICO_AUTH,
-            SAML_YUBICO_AUTH, SAML_OKTA_YUBICO_AUTH,
-            SAML_ONELOGIN_YUBICO_AUTH):
+    if sso_mode not in (AZURE_YUBICO_AUTH, GOOGLE_YUBICO_AUTH,
+            AUTHZERO_YUBICO_AUTH, SLACK_YUBICO_AUTH, SAML_YUBICO_AUTH,
+            SAML_OKTA_YUBICO_AUTH, SAML_ONELOGIN_YUBICO_AUTH):
         return flask.abort(404)
 
     if not token or not key:

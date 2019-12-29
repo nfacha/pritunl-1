@@ -16,7 +16,6 @@ import uuid
 import hashlib
 import base64
 import pymongo
-import datetime
 
 _states = tunldb.TunlDB()
 
@@ -684,7 +683,8 @@ class Authorizer(object):
                         'timestamp': utils.now(),
                     }, upsert=True)
 
-        elif YUBICO_AUTH in sso_mode and YUBICO_AUTH in auth_type:
+        elif auth_type == YUBICO_AUTH or \
+                (YUBICO_AUTH in sso_mode and YUBICO_AUTH in auth_type):
             if not self.password and self.has_challenge() and \
                     self.user.has_pin():
                 self.user.audit_event('user_connection',
@@ -1209,7 +1209,9 @@ class Authorizer(object):
                 org_name=self.user.org.name,
                 user_name=self.user.name,
                 remote_ip=self.remote_ip,
+                mac_addr=self.mac_addr,
                 platform=self.platform,
+                device_id=self.device_id,
                 device_name=self.device_name,
                 password=self.password,
             )

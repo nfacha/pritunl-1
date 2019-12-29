@@ -79,6 +79,14 @@ def auth_okta(username):
         )
         return None
 
+    if response.status_code == 404:
+        logger.warning('Okta user is not assigned to application', 'sso',
+            username=username,
+            okta_app_id=okta_app_id,
+            user_id=user_id,
+        )
+        return False
+
     if response.status_code != 200:
         logger.error('Okta api error', 'sso',
             username=username,
@@ -144,7 +152,7 @@ def auth_okta_secondary(username, passcode, remote_ip, okta_mode):
                 not factor.get('status'):
             continue
 
-        if factor.get('provider').lower() != 'okta' or \
+        if factor.get('provider').lower() not in ('okta', 'google') or \
                 factor.get('status').lower() != 'active':
             continue
 
@@ -157,7 +165,8 @@ def auth_okta_secondary(username, passcode, remote_ip, okta_mode):
         else:
             continue
 
-        factor_id = factor['id']
+        if factor_id is None or factor.get('provider').lower() == 'okta':
+            factor_id = factor['id']
 
     if not factor_id:
         if 'none' in okta_mode:
@@ -182,6 +191,12 @@ def auth_okta_secondary(username, passcode, remote_ip, okta_mode):
     verify_data = {}
     if passcode:
         verify_data['passCode'] = passcode
+
+    logger.info('Sending Okta verify', 'sso',
+        username=username,
+        okta_user_id=user_id,
+        okta_factor_id=factor_id,
+    )
 
     try:
         response = requests.post(

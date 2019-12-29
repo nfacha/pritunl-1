@@ -4,6 +4,7 @@ APP_NAME = 'pritunl'
 APP_NAME_FORMATED = 'Pritunl'
 CONF_FILENAME = '%s.conf' % APP_NAME
 MIN_DATABASE_VER = '1.25.0.0'
+SE_MODE = False
 
 SAVED = 'saved'
 UNSAVED = 'unsaved'
@@ -78,15 +79,21 @@ AWS_REGIONS = {
     'us-east-2',
     'us-west-1',
     'us-west-2',
+    'us-gov-east-1',
     'us-gov-west-1',
+    'eu-north-1',
     'eu-west-1',
     'eu-west-2',
+    'eu-west-3',
     'eu-central-1',
     'ca-central-1',
+    'cn-north-1',
+    'cn-northwest-1',
     'ap-northeast-1',
     'ap-northeast-2',
     'ap-southeast-1',
     'ap-southeast-2',
+    'ap-east-1',
     'ap-south-1',
     'sa-east-1',
 }
@@ -817,6 +824,10 @@ PIN_IS_DISABLED_MSG = 'Pin is disabled.'
 PIN_RADIUS = 'pin_radius'
 PIN_RADIUS_MSG = 'Pin cannot be used with Radius users.'
 
+PIN_BYPASS_SECONDARY = 'pin_bypass_secondary'
+PIN_BYPASS_SECONDARY_MSG = 'Cannot set pin with secondary ' + \
+    'authentication bypass enabled.'
+
 TOKEN_INVALID = 'token_invalid'
 TOKEN_INVALID_MSG = 'Token is invalid.'
 
@@ -828,6 +839,10 @@ DUO_FAILED_MSG = 'Duo authentication failed.'
 
 YUBIKEY_INVALID = 'yubikey_invalid'
 YUBIKEY_INVALID_MSG = 'YubiKey is invalid.'
+
+YUBIKEY_BYPASS_SECONDARY = 'yubikey_bypass_secondary'
+YUBIKEY_BYPASS_SECONDARY_MSG = 'Cannot set YubiKey with secondary ' + \
+    'authentication bypass enabled.'
 
 NETWORK_IN_USE = 'network_in_use'
 NETWORK_IN_USE_MSG = 'Network address is already in use.'
